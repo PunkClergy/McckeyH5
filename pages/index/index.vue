@@ -1,5 +1,9 @@
 <template>
 	<view class="page">
+		<!-- 背景氛围光斑 -->
+		<view class="glow glow-a"></view>
+		<view class="glow glow-b"></view>
+
 		<!-- 顶部栏：标题 + 语言切换 -->
 		<view class="header">
 			<view class="header-left">
@@ -13,32 +17,39 @@
 			</view>
 		</view>
 
-		<!-- 车辆信息渐变卡 -->
+		<!-- 车辆信息卡：车牌主视觉 + 字段分层 -->
 		<view class="profile-card">
-			<view class="line">
-				<text class="line-label">{{ tips.Brand[lang] }}：</text>
-				<text class="line-value">{{ vehicleBrand() }}</text>
+			<view class="card-accent"></view>
+
+			<view class="plate-block">
+				<text class="plate-tag">{{ tips.PlateNo[lang] }}</text>
+				<text class="plate-value">{{ vehicleInfo.plateNumber || '-' }}</text>
 			</view>
-			<view class="line">
-				<text class="line-label">{{ tips.PlateNo[lang] }}：</text>
-				<text class="line-value">{{ vehicleInfo.plateNumber || '-' }}</text>
-			</view>
+
 			<view class="divider"></view>
-			<view class="line">
-				<text class="line-label">{{ tips.AuthPeriod[lang] }}：</text>
-				<text class="line-value">{{ authPeriodText() }}</text>
+
+			<view class="field">
+				<text class="field-label">{{ tips.Brand[lang] }}</text>
+				<text class="field-value">{{ vehicleBrand() }}</text>
 			</view>
-			<view class="line">
-				<text class="line-label">{{ tips.Remark[lang] }}：</text>
-				<text class="line-value">{{ vehicleRemark() }}</text>
+			<view class="field">
+				<text class="field-label">{{ tips.AuthPeriod[lang] }}</text>
+				<view class="period">
+					<text class="period-item">{{ periodStart() }}</text>
+					<text class="period-item">{{ periodEnd() }}</text>
+				</view>
 			</view>
-			<view class="line">
-				<text class="line-label">{{ tips.Location[lang] }}：</text>
-				<text class="line-value">{{ vehicleAddress() }}</text>
+			<view class="field">
+				<text class="field-label">{{ tips.Remark[lang] }}</text>
+				<text class="field-value">{{ vehicleRemark() }}</text>
 			</view>
-			<view class="line">
-				<text class="line-label">{{ tips.LocationTime[lang] }}：</text>
-				<text class="line-value">{{ fetchedAt || '-' }}</text>
+			<view class="field">
+				<text class="field-label">{{ tips.Location[lang] }}</text>
+				<text class="field-value">{{ vehicleAddress() }}</text>
+			</view>
+			<view class="field">
+				<text class="field-label">{{ tips.LocationTime[lang] }}</text>
+				<text class="field-value muted">{{ fetchedAt || '-' }}</text>
 			</view>
 		</view>
 
@@ -166,6 +177,15 @@ export default {
 			const v = this.vehicleInfo || {}
 			return `${v.startDate || '-'} - ${v.endDate || '-'}`
 		},
+		// 授权时段拆起/止两行展示
+		periodStart() {
+			const v = this.vehicleInfo || {}
+			return v.startDate || '-'
+		},
+		periodEnd() {
+			const v = this.vehicleInfo || {}
+			return v.endDate || '-'
+		},
 		// 备注：优先取 bak（与后端字段约定一致），并兼容其他历史字段名
 		vehicleRemark() {
 			const v = this.vehicleInfo || {}
@@ -245,12 +265,37 @@ export default {
 
 <style scoped>
 	.page {
+		position: relative;
+		overflow: hidden;
 		min-height: 100vh;
 		display: flex;
 		flex-direction: column;
 		padding: 28rpx 28rpx 32rpx;
 		box-sizing: border-box;
-		background: linear-gradient(165deg, #f1ecfb 0%, #e9f3ec 55%, #eef2fa 100%);
+		background: linear-gradient(165deg, #f1ecfb 0%, #eef4fb 35%, #e9f3ec 70%, #eef2fa 100%);
+	}
+
+	/* 背景氛围光斑 */
+	.glow {
+		position: absolute;
+		border-radius: 50%;
+		pointer-events: none;
+	}
+
+	.glow-a {
+		top: -160rpx;
+		right: -180rpx;
+		width: 560rpx;
+		height: 560rpx;
+		background: radial-gradient(closest-side, rgba(168, 138, 214, 0.30), rgba(168, 138, 214, 0) 72%);
+	}
+
+	.glow-b {
+		bottom: 220rpx;
+		left: -200rpx;
+		width: 520rpx;
+		height: 520rpx;
+		background: radial-gradient(closest-side, rgba(60, 196, 160, 0.22), rgba(60, 196, 160, 0) 72%);
 	}
 
 	.spacer {
@@ -259,6 +304,8 @@ export default {
 	}
 
 	.header {
+		position: relative;
+		z-index: 1;
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
@@ -306,45 +353,120 @@ export default {
 		align-items: center;
 	}
 
-	/* 车辆信息淡紫渐变卡 */
+	/* 车辆信息卡：顶部渐变装饰条 + 信息分层 */
 	.profile-card {
+		position: relative;
+		z-index: 1;
+		overflow: hidden;
 		margin-top: 18rpx;
-		background: linear-gradient(135deg, #f5f0fc 0%, #eef7f1 100%);
+		background: #ffffff;
 		border: 1rpx solid #e4ddf4;
 		border-radius: 32rpx;
-		padding: 46rpx 36rpx;
+		padding: 44rpx 36rpx 40rpx;
 		display: flex;
 		flex-direction: column;
-		gap: 36rpx;
 		box-shadow: 0 14rpx 34rpx rgba(60, 50, 120, 0.08);
 	}
 
-	.line {
+	.card-accent {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 8rpx;
+		background: linear-gradient(90deg, #a88ad6, #7fcfb2);
+	}
+
+	/* 车牌主视觉 */
+	.plate-block {
 		display: flex;
-		align-items: baseline;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 14rpx;
 	}
 
-	.line-label {
-		font-size: 28rpx;
-		color: #8b86a8;
-		flex-shrink: 0;
+	.plate-tag {
+		display: inline-flex;
+		align-items: center;
+		padding: 6rpx 16rpx;
+		border-radius: 10rpx;
+		background: rgba(168, 138, 214, 0.14);
+		color: #8b6cc2;
+		font-size: 20rpx;
+		letter-spacing: 2rpx;
 	}
 
-	.line-value {
-		font-size: 28rpx;
+	.plate-value {
+		font-size: 44rpx;
+		font-weight: 700;
 		color: #2e2a4e;
-		font-weight: 500;
-		flex: 1;
+		letter-spacing: 1rpx;
 		word-break: break-all;
 	}
 
 	.divider {
 		height: 1rpx;
-		background: #e8e3f5;
+		background: #eef0f8;
+		margin: 34rpx 0;
+	}
+
+	/* 字段行：左标签 + 右值 */
+	.field {
+		display: flex;
+		align-items: flex-start;
+		gap: 28rpx;
+		margin-bottom: 30rpx;
+	}
+
+	.field:last-child {
+		margin-bottom: 0;
+	}
+
+	.field-label {
+		flex-shrink: 0;
+		width: 170rpx;
+		font-size: 22rpx;
+		color: #a29cc2;
+		letter-spacing: 1rpx;
+		line-height: 1.6;
+		padding-top: 4rpx;
+	}
+
+	.field-value {
+		flex: 1;
+		font-size: 30rpx;
+		color: #2e2a4e;
+		font-weight: 500;
+		line-height: 1.6;
+		word-break: break-all;
+	}
+
+	.field-value.muted {
+		color: #8a85ab;
+		font-size: 26rpx;
+		font-weight: 400;
+	}
+
+	/* 授权时段：起止两行 */
+	.period {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 8rpx;
+	}
+
+	.period-item {
+		font-size: 28rpx;
+		color: #2e2a4e;
+		font-weight: 500;
+		line-height: 1.5;
+		word-break: break-all;
 	}
 
 	/* 车辆照片淡绿胶囊条 */
 	.photo-bar {
+		position: relative;
+		z-index: 1;
 		margin-bottom: 36rpx;
 		display: flex;
 		justify-content: space-between;
@@ -369,6 +491,8 @@ export default {
 
 	/* 圆形控车按钮 */
 	.circle-row {
+		position: relative;
+		z-index: 1;
 		margin-bottom: 48rpx;
 		display: flex;
 		justify-content: space-around;
@@ -430,6 +554,8 @@ export default {
 
 	/* 还车大胶囊按钮（浅香槟金） */
 	.return-btn {
+		position: relative;
+		z-index: 1;
 		margin-bottom: 12rpx;
 		width: 100%;
 		box-sizing: border-box;
