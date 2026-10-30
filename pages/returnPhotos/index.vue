@@ -204,6 +204,7 @@
 		flex-direction: column;
 		padding: 24rpx;
 		box-sizing: border-box;
+		background: linear-gradient(165deg, #f1ecfb 0%, #e9f3ec 55%, #eef2fa 100%);
 	}
 
 	.header {
@@ -216,14 +217,14 @@
 	.back-btn {
 		width: 60rpx;
 		font-size: 48rpx;
-		color: #252c3b;
+		color: #312d52;
 		text-align: center;
 	}
 
 	.header-title {
 		font-size: 32rpx;
 		font-weight: 600;
-		color: #252c3b;
+		color: #312d52;
 	}
 
 	.header-placeholder {
@@ -241,7 +242,7 @@
 		border-radius: 18rpx;
 		overflow: hidden;
 		background: #ffffff;
-		border: 2rpx dashed #c5ccd8;
+		border: 2rpx dashed #d6cfe9;
 		padding: 0;
 		display: flex;
 		align-items: center;
@@ -260,13 +261,13 @@
 
 	.plus {
 		font-size: 56rpx;
-		color: #b3bac5;
+		color: #b0a8cc;
 		line-height: 1.2;
 	}
 
 	.photo-label {
 		font-size: 26rpx;
-		color: #8a8f99;
+		color: #8a85ab;
 		margin-top: 10rpx;
 	}
 
@@ -280,7 +281,7 @@
 		left: 20rpx;
 		bottom: 16rpx;
 		color: #ffffff;
-		background: rgba(0, 0, 0, 0.45);
+		background: rgba(0, 0, 0, 0.5);
 		padding: 6rpx 18rpx;
 		border-radius: 20rpx;
 		font-size: 22rpx;
@@ -294,14 +295,14 @@
 		margin-top: 24rpx;
 		padding: 20rpx 24rpx;
 		background: #ffffff;
-		border: 2rpx solid #c5ccd8;
+		border: 1rpx solid #dfd9f0;
 		border-radius: 16rpx;
 	}
 
 	.remark-label {
 		display: block;
 		font-size: 26rpx;
-		color: #4a5568;
+		color: #4a4569;
 		margin-bottom: 12rpx;
 	}
 
@@ -309,26 +310,28 @@
 		width: 100%;
 		min-height: 140rpx;
 		font-size: 26rpx;
-		color: #1f2937;
+		color: #2e2a4e;
 		line-height: 1.5;
 		box-sizing: border-box;
 	}
 
 	.remark-placeholder {
-		color: #b3bac5;
+		color: #a8a2c2;
 	}
 
+	/* 提交还车按钮（浅香槟金） */
 	.submit-btn {
 		margin-top: 24rpx;
 		width: 100%;
 		box-sizing: border-box;
 		height: 92rpx;
 		line-height: 92rpx;
-		background: #4cd964;
+		background: linear-gradient(90deg, #eed189, #d2a24c);
 		color: #ffffff;
 		font-size: 32rpx;
 		border-radius: 16rpx;
 		border: none;
+		box-shadow: 0 12rpx 26rpx rgba(210, 162, 76, 0.25);
 	}
 
 	.submit-btn::after {

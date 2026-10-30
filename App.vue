@@ -10,8 +10,8 @@
 </script>
 
 <style>
-	/* 全局样式 */
+	/* 全局样式：淡紫基调 */
 	page {
-		background-color: #f5f6fa;
+		background-color: #efe9f8;
 	}
 </style>

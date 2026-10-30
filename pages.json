@@ -18,8 +18,8 @@
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "WiseLink Auto Ride",
-		"navigationBarBackgroundColor": "#EFF1FC",
-		"backgroundColor": "#F5F6FA"
+		"navigationBarBackgroundColor": "#EFE9F8",
+		"backgroundColor": "#EFE9F8"
 	},
 	"uniIdRouter": {}
 }

@@ -245,7 +245,7 @@ export default {
 		flex-direction: column;
 		padding: 28rpx 28rpx 32rpx;
 		box-sizing: border-box;
-		background: linear-gradient(180deg, #eef7ef 0%, #eef3f8 100%);
+		background: linear-gradient(165deg, #f1ecfb 0%, #e9f3ec 55%, #eef2fa 100%);
 	}
 
 	.spacer {
@@ -266,15 +266,17 @@ export default {
 	}
 
 	.header-title {
-		font-size: 36rpx;
+		font-size: 38rpx;
 		font-weight: 600;
-		color: #252c3b;
+		color: #312d52;
+		letter-spacing: 0.5rpx;
 	}
 
 	.header-sub {
 		font-size: 22rpx;
-		color: #8a8f99;
-		margin-top: 6rpx;
+		color: #8a85ab;
+		margin-top: 8rpx;
+		letter-spacing: 1rpx;
 	}
 
 	.header-right {
@@ -285,12 +287,13 @@ export default {
 
 	.header-action {
 		font-size: 26rpx;
-		color: #4a5568;
+		color: #5b5578;
 		padding: 10rpx 22rpx;
-		border: 1rpx solid #d8dde6;
+		border: 1rpx solid #dfd9f0;
 		border-radius: 28rpx;
 		background: #ffffff;
 		line-height: 1.4;
+		box-shadow: 0 4rpx 12rpx rgba(60, 50, 120, 0.06);
 	}
 
 	.lang-picker {
@@ -298,16 +301,17 @@ export default {
 		align-items: center;
 	}
 
-	/* 车辆信息渐变卡 */
+	/* 车辆信息淡紫渐变卡 */
 	.profile-card {
 		margin-top: 18rpx;
-		background: linear-gradient(135deg, #eaf6da 0%, #d9f1ec 55%, #e0f1f7 100%);
+		background: linear-gradient(135deg, #f5f0fc 0%, #eef7f1 100%);
+		border: 1rpx solid #e4ddf4;
 		border-radius: 32rpx;
 		padding: 46rpx 36rpx;
 		display: flex;
 		flex-direction: column;
 		gap: 36rpx;
-		box-shadow: 0 10rpx 28rpx rgba(90, 150, 130, 0.12);
+		box-shadow: 0 14rpx 34rpx rgba(60, 50, 120, 0.08);
 	}
 
 	.line {
@@ -317,13 +321,13 @@ export default {
 
 	.line-label {
 		font-size: 28rpx;
-		color: #4a5568;
+		color: #8b86a8;
 		flex-shrink: 0;
 	}
 
 	.line-value {
 		font-size: 28rpx;
-		color: #1f2937;
+		color: #2e2a4e;
 		font-weight: 500;
 		flex: 1;
 		word-break: break-all;
@@ -331,29 +335,30 @@ export default {
 
 	.divider {
 		height: 1rpx;
-		background: rgba(255, 255, 255, 0.75);
+		background: #e8e3f5;
 	}
 
-	/* 车辆照片胶囊条 */
+	/* 车辆照片淡绿胶囊条 */
 	.photo-bar {
 		margin-bottom: 36rpx;
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		background: linear-gradient(90deg, #fbf3e3, #fdf6ec);
-		border: 1rpx solid #f2e6cf;
+		background: linear-gradient(90deg, #f3fbf6, #f2f6fd);
+		border: 1rpx solid #dfeee5;
 		border-radius: 40rpx;
 		padding: 32rpx 36rpx;
+		box-shadow: 0 8rpx 20rpx rgba(60, 50, 120, 0.06);
 	}
 
 	.photo-bar-title {
 		font-size: 28rpx;
-		color: #4a5568;
+		color: #4a4569;
 	}
 
 	.photo-bar-link {
 		font-size: 28rpx;
-		color: #5a6472;
+		color: #0e9f8a;
 		font-weight: 500;
 	}
 
@@ -378,19 +383,19 @@ export default {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		box-shadow: 0 12rpx 24rpx rgba(0, 0, 0, 0.12);
+		box-shadow: 0 12rpx 26rpx rgba(60, 50, 120, 0.16);
 	}
 
 	.circle-honk {
-		background: linear-gradient(135deg, #86d8c5, #57c6ad);
+		background: linear-gradient(135deg, #1fd6b2, #0d9e8a);
 	}
 
 	.circle-unlock {
-		background: linear-gradient(135deg, #f9a78f, #f47c70);
+		background: linear-gradient(135deg, #f79a6f, #df542e);
 	}
 
 	.circle-lock {
-		background: linear-gradient(135deg, #c3cddb, #9eb0c8);
+		background: linear-gradient(135deg, #93a9c6, #5a76a0);
 	}
 
 	.circle-icon {
@@ -415,21 +420,23 @@ export default {
 
 	.circle-label {
 		font-size: 26rpx;
-		color: #333c4d;
+		color: #494465;
 	}
 
-	/* 还车大胶囊按钮 */
+	/* 还车大胶囊按钮（浅香槟金） */
 	.return-btn {
 		margin-bottom: 12rpx;
 		width: 100%;
+		box-sizing: border-box;
 		height: 96rpx;
 		line-height: 96rpx;
 		border-radius: 48rpx;
-		background: linear-gradient(90deg, #f8b496, #f47b70);
+		background: linear-gradient(90deg, #eed189, #d2a24c);
 		color: #ffffff;
 		font-size: 32rpx;
 		font-weight: 600;
 		border: none;
+		box-shadow: 0 12rpx 26rpx rgba(210, 162, 76, 0.25);
 	}
 
 	.return-btn::after {
