@@ -121,6 +121,11 @@ export default {
 			const opt = this.langOptions[e.detail.value] || this.langOptions[0]
 			this.lang = opt.value
 			uni.setStorageSync('language', this.lang)
+			// 语言切换后自动刷新车辆信息：后端按 lang 请求头返回对应语言的品牌/备注/地址等字段，
+			// 重新请求可让数据与界面文案语言一致，无需手动刷新页面
+			if (this.controlcode) {
+				this.fetchCarInfo(this.controlcode)
+			}
 		},
 		// 车辆来源：链接控制码直连 > 空态
 		async resolveVehicle() {
