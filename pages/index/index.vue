@@ -161,9 +161,11 @@ export default {
 				console.error('获取车辆信息失败', e)
 			}
 		},
-		// 字段取值兼容：品牌
+		// 字段取值兼容：品牌（业务口径 = vehicleSerialName + vehicleModeName，兼容其他历史字段）
 		vehicleBrand() {
 			const v = this.vehicleInfo || {}
+			const parts = [v.vehicleSerialName, v.vehicleModeName].filter(Boolean)
+			if (parts.length) return parts.join(' ')
 			return v.brand || v.model || v.carBrand || v.vehicleModel || '-'
 		},
 		// 字段取值兼容：文本地址优先，缺省退化为经纬度
@@ -186,10 +188,10 @@ export default {
 			const v = this.vehicleInfo || {}
 			return v.endDate || '-'
 		},
-		// 备注：优先取 bak（与后端字段约定一致），并兼容其他历史字段名
+		// 备注：只取 bak（后端字段约定）
 		vehicleRemark() {
 			const v = this.vehicleInfo || {}
-			const remark = v.bak || v.remark || v.remarks || v.note || v.memo || v.description || v.comments || v.remarkText
+			const remark = v.bak
 			return (remark === undefined || remark === null || remark === '') ? '-' : String(remark)
 		},
 		formatLocation(lat, lng) {
