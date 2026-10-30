@@ -6,19 +6,19 @@
 
 ```
 McckeyH5/
-├── App.vue                      # 全局：仅版本号，无登录态读取
-├── main.js / index.html         # Vue3 入口与 H5 壳（模板保留）
+├── App.vue                      # 全局：仅错误日志，无登录态读取
+├── main.js / index.html         # Vue3 入口（createSSRApp）与 H5 壳（模板保留）
 ├── manifest.json                # H5 配置（hash 路由、标题）；原生权限清单已清空
 ├── pages.json                   # 2 个页面路由，自定义导航栏
+├── uni.scss                     # 全局 SCSS 变量/样式入口（uni-app 标准模板文件）
 ├── api/
-│   ├── index.js
+│   ├── index.js                 # 统一出口，透出 home.js
 │   └── home.js                  # 3 个封装接口（查码/查车/控车）
 ├── utils/
 │   ├── request/http.js          # uni.request 统一封装（直连线上域名 + 拦截器）
 │   ├── urlParams.js             # 合并 options / location.search / hash query，兼容根路径 ?code= 链接
-│   ├── langOptions.js            # 语种下拉清单 LANG_OPTIONS，新增语种在此追加
-│   ├── langtips.js              # 文案字典（按语种 key 分组，可扩展）
-│   └── langtitle.js             # 页面标题双语
+│   ├── langOptions.js           # 语种下拉清单 LANG_OPTIONS，新增语种在此追加
+│   └── langtips.js              # 文案字典（按语种 key 分组，可扩展）
 └── pages/
     ├── index/index.vue           # 控车台：解析链接参数(code/mobile)查车 + 开锁/关锁/寻车 + 查看照片 + 还车入口
     └── returnPhotos/index.vue    # 5 张还车照片采集/上传 + 提交还车
@@ -105,3 +105,9 @@ returnPhotos（code 来自链接或控车页）
    - 禁止把 `base` 写成 `http://` 绝对地址：HTTPS 页面加载 HTTP 资源会被浏览器以 Mixed Content 拦截（线上 `http://k1sw.wiselink.net.cn/assets/login` 被 block 即此原因）；`base` 也勿留空 `/`，否则部署到子目录时资源会去域名根目录找而 404。
    - 若改用 history 模式（地址栏无 `#`），除 `h5.router.mode` 外 `h5.router.base` 需配为部署子路径（如 `/img/web/`），并由 Nginx 等配置 `try_files ... /子路径/index.html` 回退，否则刷新子路由 404；本项目默认 hash + `./` 相对路径以规避服务器配置。
 8. **重新发行与旧包清理**：发行前清空本地 `unpackage/dist/build/web`（含旧压缩包 `web.rar`）；服务器部署目录（如 `/img/web/`）先清空再上传新产物，避免旧版 `login` 分包等残留 chunk 被引用，导致 `Unable to preload CSS/JS`、`/assets/login` 404。`utils/urlParams.js` 已兜底解析根路径 `?code=`，`www.xxx.com?code=xxx` 可直接取参。
+
+## 七、变更记录
+
+| 日期 | 变更 |
+|---|---|
+| 2026-10-30 | 清理无效代码：删除 `utils/langtitle.js`（未引用的标题字典）、`uni.promisify.adaptor.js`（Vue2 兼容遗留，Vue3 构建不编译）；`main.js` 移除 `#ifndef VUE3` 分支（项目固定 Vue3）；`App.vue` 移除未读取的 `globalData.version`。代码分析详见《代码分析记录.md》 |

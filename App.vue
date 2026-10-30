@@ -1,8 +1,5 @@
 <script>
 	export default {
-		globalData: {
-			version: '1.0.0'
-		},
 		onLaunch() {},
 		onShow() {},
 		onHide() {},
