@@ -58,7 +58,7 @@
 				<text class="circle-label">{{ tips.FindVehicle[lang] }}</text>
 			</view>
 			<view class="circle-item" hover-class="item-tap" @tap="controlCar(3)">
-				<view class="circle circle-unlock"><view class="circle-icon icon-car"></view></view>
+				<view class="circle circle-unlock"><view class="circle-icon icon-unlock"></view></view>
 				<text class="circle-label">{{ tips.Unlock[lang] }}</text>
 			</view>
 			<view class="circle-item" hover-class="item-tap" @tap="controlCar(1)">
@@ -386,11 +386,11 @@ export default {
 	}
 
 	.circle-unlock {
-		background: linear-gradient(135deg, #c3cddb, #9eb0c8);
+		background: linear-gradient(135deg, #f9a78f, #f47c70);
 	}
 
 	.circle-lock {
-		background: linear-gradient(135deg, #f9a78f, #f47c70);
+		background: linear-gradient(135deg, #c3cddb, #9eb0c8);
 	}
 
 	.circle-icon {
@@ -405,8 +405,8 @@ export default {
 		background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'><path d='M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z'/></svg>");
 	}
 
-	.icon-car {
-		background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'><path d='M18.9 6.5c-.2-.8-1-1.5-2-1.5H7.1c-1 0-1.8.7-2 1.5L4 11v6a1 1 0 0 0 1 1h1a1.5 1.5 0 0 0 3 0h6a1.5 1.5 0 0 0 3 0h1a1 1 0 0 0 1-1v-6l-1.1-4.5zM7.5 15a1.4 1.4 0 1 1 0-2.8 1.4 1.4 0 0 1 0 2.8zm9 0a1.4 1.4 0 1 1 0-2.8 1.4 1.4 0 0 1 0 2.8zM6.4 11l1.2-3h8.8l1.2 3H6.4z'/></svg>");
+	.icon-unlock {
+		background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'><path d='M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10z'/></svg>");
 	}
 
 	.icon-lock {
