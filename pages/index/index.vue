@@ -45,7 +45,7 @@
 			</view>
 			<view class="field">
 				<text class="field-label">{{ tips.Location[lang] }}</text>
-				<text class="field-value">{{ vehicleAddress() }}</text>
+				<text class="field-value">{{ resolvedAddress || vehicleAddress() }}</text>
 			</view>
 			<view class="field">
 				<text class="field-label">{{ tips.LocationTime[lang] }}</text>
@@ -102,6 +102,8 @@ export default {
 			vehicleInfo: {},
 			controlcode: '',
 			fetchedAt: '',
+			// 经纬度逆地理解析出的地址文本（按当前语言），为空时回退后端 address/坐标
+			resolvedAddress: '',
 			loading: false
 		}
 	},
@@ -137,6 +139,8 @@ export default {
 			if (this.controlcode) {
 				this.fetchCarInfo(this.controlcode)
 			}
+			// 经纬度地址按新语言重新解析
+			this.resolveAddress()
 		},
 		// 车辆来源：链接控制码直连 > 空态
 		async resolveVehicle() {
@@ -156,6 +160,8 @@ export default {
 				if (res && res.code == 1000 && res.content) {
 					this.vehicleInfo = res.content
 					this.fetchedAt = this.formatDateTime(new Date())
+					// 拿到坐标后异步逆地理解析地址（按当前语言）
+					this.resolveAddress()
 				}
 			} catch (e) {
 				console.error('获取车辆信息失败', e)
@@ -174,6 +180,62 @@ export default {
 			if (v.address) return v.address
 			if (v.locationText) return v.locationText
 			return this.formatLocation(v.latitude, v.longitude)
+		},
+		// 经纬度逆地理解析为地址文本（按当前语言；主：OpenStreetMap Nominatim，备：BigDataCloud，均免 Key）
+		resolveAddress() {
+			const v = this.vehicleInfo || {}
+			const lat = v.latitude
+			const lng = v.longitude
+			if (lat === undefined || lat === null || lat === '' || lng === undefined || lng === null || lng === '') {
+				this.resolvedAddress = ''
+				return
+			}
+			const langCode = { zhCn: 'zh-CN', enUs: 'en', esEs: 'es' }[this.lang] || 'en'
+			const cacheKey = `${lat},${lng}|${langCode}`
+			// 同坐标同语言结果缓存，避免重复请求
+			this._geoCache = this._geoCache || {}
+			if (this._geoCache[cacheKey]) {
+				this.resolvedAddress = this._geoCache[cacheKey]
+				return
+			}
+			const apply = (text) => {
+				const addr = (text || '').trim()
+				this.resolvedAddress = addr || ''
+				this._geoCache[cacheKey] = addr
+			}
+			uni.request({
+				url: `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=${langCode}&zoom=16`,
+				method: 'GET',
+				timeout: 8000,
+				success: (res) => {
+					if (res.statusCode === 200 && res.data && res.data.display_name) {
+						// 去掉国别层、最多保留 4 段，避免地址过长
+						const parts = String(res.data.display_name).split(',').map(s => s.trim()).filter(Boolean)
+						const filtered = parts.filter(s => !/^(中国|China|People'?s Republic of China)$/.test(s))
+						apply(filtered.slice(0, 4).join(', '))
+					} else {
+						this.geoFallback(lat, lng, langCode, apply)
+					}
+				},
+				fail: () => this.geoFallback(lat, lng, langCode, apply)
+			})
+		},
+		geoFallback(lat, lng, langCode, apply) {
+			uni.request({
+				url: `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=${langCode}`,
+				method: 'GET',
+				timeout: 8000,
+				success: (res) => {
+					if (res.statusCode === 200 && res.data) {
+						const d = res.data
+						const parts = [d.locality, d.city, d.principalSubdivision, d.countryName]
+						apply(parts.filter(Boolean).join(', '))
+					} else {
+						apply('')
+					}
+				},
+				fail: () => apply('')
+			})
 		},
 		authPeriodText() {
 			const v = this.vehicleInfo || {}
