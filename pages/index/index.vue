@@ -73,7 +73,7 @@
 </template>
 
 <script>
-import { u_getControlCodeByMobile, u_getCarPoisitonByCode, u_operation } from '@/api'
+import { u_getCarPoisitonByCode, u_operation } from '@/api'
 import { tips } from '@/utils/langtips.js'
 import { parseUrlParams } from '@/utils/urlParams.js'
 import { LANG_OPTIONS, langIndexOf } from '@/utils/langOptions.js'
@@ -88,18 +88,16 @@ export default {
 			langOptions: LANG_OPTIONS,
 			lang: 'enUs',
 			linkCode: '',
-			linkMobile: '',
 			vehicleInfo: {},
 			controlcode: '',
 			fetchedAt: '',
 			loading: false
 		}
 	},
-	// 分享链接参数：?code=控制码 或 ?mobile=手机号；兼容根路径 query（www.xxx.com?code=xxx）
+	// 分享链接参数：?code=控制码；兼容根路径 query（www.xxx.com?code=xxx）
 	onLoad(options = {}) {
 		const params = parseUrlParams(options)
 		this.linkCode = params.code || params.controlcode || ''
-		this.linkMobile = params.mobile || params.phone || ''
 	},
 	onShow() {
 		this.initLang()
@@ -124,34 +122,16 @@ export default {
 			this.lang = opt.value
 			uni.setStorageSync('language', this.lang)
 		},
-		// 车辆来源优先级：链接控制码 > 链接手机号 > 空态
+		// 车辆来源：链接控制码直连 > 空态
 		async resolveVehicle() {
 			if (this.linkCode) {
 				this.controlcode = this.linkCode
 				await this.fetchCarInfo(this.linkCode)
 				return
 			}
-			if (this.linkMobile) {
-				await this.fetchCarByMobile(this.linkMobile)
-				return
-			}
 			this.vehicleInfo = {}
 			this.controlcode = ''
 			this.fetchedAt = ''
-		},
-		// 按手机号取控制码，再取车辆信息
-		async fetchCarByMobile(mobile) {
-			if (!mobile) return
-			try {
-				const res = await u_getControlCodeByMobile({ mobile })
-				const list = (res && res.content) || []
-				if (!list.length) return
-				this.controlcode = list[0].controlcode
-				await this.fetchCarInfo(this.controlcode)
-			} catch (e) {
-				console.error('获取控制码失败', e)
-				uni.showToast({ title: this.tips.DataLoadFailed[this.lang], icon: 'none' })
-			}
 		},
 		// 按控制码取车辆信息
 		async fetchCarInfo(code) {
@@ -181,10 +161,10 @@ export default {
 			const v = this.vehicleInfo || {}
 			return `${v.startDate || '-'} - ${v.endDate || '-'}`
 		},
-		// 备注：兼容车辆信息接口可能的多个字段名
+		// 备注：优先取 bak（与后端字段约定一致），并兼容其他历史字段名
 		vehicleRemark() {
 			const v = this.vehicleInfo || {}
-			const remark = v.remark || v.remarks || v.note || v.memo || v.description || v.comments || v.remarkText
+			const remark = v.bak || v.remark || v.remarks || v.note || v.memo || v.description || v.comments || v.remarkText
 			return (remark === undefined || remark === null || remark === '') ? '-' : String(remark)
 		},
 		formatLocation(lat, lng) {
@@ -217,7 +197,10 @@ export default {
 				this.loading = false
 				uni.showModal({
 					title: this.tips.Tip[this.lang],
-					content: (res && res.msg) || this.tips.OperateSuccess[this.lang],
+					// 业务成功（code===1000）显示本地三语文案，避免后端中文 msg 透出；失败时保留后端具体信息
+					content: (res && res.code == 1000)
+						? this.tips.OperateSuccess[this.lang]
+						: ((res && res.msg) || this.tips.OperateSuccess[this.lang]),
 					showCancel: false,
 					confirmText: this.tips.Confirm[this.lang]
 				})

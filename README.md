@@ -13,26 +13,25 @@ McckeyH5/
 ├── uni.scss                     # 全局 SCSS 变量/样式入口（uni-app 标准模板文件）
 ├── api/
 │   ├── index.js                 # 统一出口，透出 home.js
-│   └── home.js                  # 3 个封装接口（查码/查车/控车）
+│   └── home.js                  # 2 个封装接口（查车/控车）
 ├── utils/
 │   ├── request/http.js          # uni.request 统一封装（直连线上域名 + 拦截器）
 │   ├── urlParams.js             # 合并 options / location.search / hash query，兼容根路径 ?code= 链接
 │   ├── langOptions.js           # 语种下拉清单 LANG_OPTIONS，新增语种在此追加
 │   └── langtips.js              # 文案字典（按语种 key 分组，可扩展）
 └── pages/
-    ├── index/index.vue           # 控车台：解析链接参数(code/mobile)查车 + 开锁/关锁/寻车 + 查看照片 + 还车入口
-    └── returnPhotos/index.vue    # 5 张还车照片采集/上传 + 提交还车
+    ├── index/index.vue           # 控车台：解析链接参数(code)查车 + 开锁/关锁/寻车 + 查看照片 + 还车入口
+    └── returnPhotos/index.vue    # 5 张还车照片采集/上传 + 备注 + 提交还车
 ```
 
-## 二、接口台账（共 5 个业务接口，统一直连 `https://k1sw.wiselink.net.cn`）
+## 二、接口台账（共 4 个业务接口，统一直连 `https://k1sw.wiselink.net.cn`）
 
 | # | 函数 / 位置 | 方法 / Content-Type | 完整请求地址 | 主要入参 | 用途 | 调用页面 |
 |---|---|---|---|---|---|---|
-| 1 | `u_getControlCodeByMobile` | GET（query） | `https://k1sw.wiselink.net.cn/renterApi/getControlCodeByMobile` | `mobile` | 按手机号取控制码列表，取首条 `controlcode`（链接 `mobile` 参数场景） | index |
-| 2 | `u_getCarPoisitonByCode` | POST / form | `https://k1sw.wiselink.net.cn/renterApi/getCarPoisitonByCode` | `code`（控制码） | 取车辆信息：`sn`、`plateNumber`、`startDate/endDate`、`latitude/longitude`、历史照片字段 | index |
-| 3 | `u_operation` | POST / form | `https://k1sw.wiselink.net.cn/renterApi/operation` | `sn`、`operationType`（3=开锁 / 1=关锁 / 5=鸣笛寻车）、`code`、`_timestamp` | 云端远程控车 | index |
-| 4 | 直写 `uni.uploadFile` | POST / multipart/form-data | `https://k1sw.wiselink.net.cn/renterApi/saveImg` | `formData.code`；文件字段 `img1Arr`~`img5Arr`（车头/车尾/左/右/钥匙位） | 5 张还车照片逐张上传 | returnPhotos |
-| 5 | 直写 `uni.request` | POST / form | `https://k1sw.wiselink.net.cn/renterApi/returnCar` | `code` | 照片上传完成后提交还车 | returnPhotos |
+| 1 | `u_getCarPoisitonByCode` | POST / form | `https://k1sw.wiselink.net.cn/renterApi/getCarPoisitonByCode` | `code`（控制码） | 取车辆信息：`sn`、`plateNumber`、`startDate/endDate`、`latitude/longitude`、历史照片字段 | index |
+| 2 | `u_operation` | POST / form | `https://k1sw.wiselink.net.cn/renterApi/operation` | `sn`、`operationType`（3=开锁 / 1=关锁 / 5=鸣笛寻车）、`code`、`_timestamp` | 云端远程控车 | index |
+| 3 | 直写 `uni.uploadFile` | POST / multipart/form-data | `https://k1sw.wiselink.net.cn/renterApi/saveImg` | `formData.code`；文件字段 `img1Arr`~`img5Arr`（车头/车尾/左/右/钥匙位） | 5 张还车照片逐张上传 | returnPhotos |
+| 4 | 直写 `uni.request` | POST / form | `https://k1sw.wiselink.net.cn/renterApi/returnCar` | `code`、`bak`（还车备注，选填） | 照片上传完成后提交还车 | returnPhotos |
 
 **请求公共头**（`utils/request/http.js` 拦截器自动注入；还车页两个直写请求手动注入）：
 
@@ -49,9 +48,8 @@ McckeyH5/
 
 ### 分享链接格式（主入口，无需登录）
 
-- **实际分发格式（控制码直连）**：`https://www.xxx.com?code=jshdjksahdj332`（参数直接挂在根路径 `?` 之后）
-- 手机号查询：`https://www.xxx.com?mobile=13800000000`
-- 参数别名兼容：控制码 `code` / `controlcode`；手机号 `mobile` / `phone`
+- **实际分发格式（控制码直连，唯一入口）**：`https://www.xxx.com?code=jshdjksahdj332`（参数直接挂在根路径 `?` 之后；无手机号参与）
+- 参数别名兼容：控制码 `code` / `controlcode`
 - 解析实现：`utils/urlParams.js` 统一合并 `onLoad.options`、`location.search`、`location.hash` 内 query，兼容三种实际访问形态：
   - `https://host/?code=xxx`（history 模式根路径 query）
   - `https://host/?code=xxx#/pages/index/index`（当前 hash 模式，参数在 hash 之前）
@@ -61,18 +59,18 @@ McckeyH5/
 
 ```
 index（控车页，直接展示，全站无登录）
-  ├─ onLoad 解析链接参数 code / mobile
-  ├─ resolveVehicle() 车辆来源优先级：
+  ├─ onLoad 解析链接参数 code
+  ├─ resolveVehicle() 车辆来源：
   │    1) 链接 code    → getCarPoisitonByCode 直接取车
-  │    2) 链接 mobile  → getControlCodeByMobile → getCarPoisitonByCode
-  │    3) 无参数        → 空态（信息区占位、操作按钮提示暂无车辆）
+  │    2) 无参数        → 空态（信息区占位、操作按钮提示暂无车辆）
   ├─ 开锁 / 关锁 / 鸣笛寻车 → u_operation（凭证为 code 控制码，鉴权以后端为准）
   ├─ 查看照片 → previewImage（k3a 域名拼接）
   └─ 归还车辆 → navigateTo returnPhotos?code=控制码
 returnPhotos（code 来自链接或控车页）
   ├─ 5 张照片采集（相册/相机）
+  ├─ 备注填写（选填，字段 `bak`，最多 200 字）
   ├─ Promise.all 并行上传 saveImg（仅带 timestamp 头）
-  └─ 全部成功 → returnCar → reLaunch index?code=控制码
+  └─ 全部成功 → returnCar（携带 bak）→ reLaunch index?code=控制码
 ```
 
 ## 四、相对 MCCKey 的裁剪清单（明确未迁移）
@@ -89,16 +87,16 @@ returnPhotos（code 来自链接或控车页）
 ## 五、运行方式
 
 1. 用 HBuilderX 打开本目录 → 运行 → 运行到浏览器（Chrome）；或 CLI：`npm install` 后 `npm run dev:h5`（依赖项目自身 `package.json` 配置，当前未生成，以 HBuilderX 为准）。
-2. 路由为 hash 模式，首页 `pages/index/index`（控车页默认直接展示）；带 `?code=` / `?mobile=` 参数直达车辆；`pages/returnPhotos/index` 为还车拍照页。全站无登录页与登录入口。
+2. 路由为 hash 模式，首页 `pages/index/index`（控车页默认直接展示）；带 `?code=` 参数直达车辆；`pages/returnPhotos/index` 为还车拍照页。全站无登录页与登录入口。
 3. 语言策略：**默认英文（`enUs`）**；当前内置 `English / 中文 / Español`（`enUs / zhCn / esEs`）。控车页右上角为语种下拉选择器（`picker`，数据源 `utils/langOptions.js` 的 `LANG_OPTIONS`），选择结果写入缓存 `language` 并全站即时生效；清空缓存或首次访问均为英文。**新增语种步骤**：① `langOptions.js` 追加 `{ value, label }`；② `langtips.js` 各文案键补该语种文案；③ `http.js` 的 `BACKEND_LANG_MAP` 补后端语言码。
 
 ## 六、注意事项（上线前确认）
 
 1. **跨域（CORS）**：当前按确认采用直连 `https://k1sw.wiselink.net.cn`。浏览器 H5 直接请求该域名，要求后端对 H5 部署域名放行 CORS（`Access-Control-Allow-Origin` 等）；若本地或线上出现跨域报错，备选方案是 HBuilderX/vite 配置开发代理（baseURL 改相对前缀 `/api`，由 devServer 或 Nginx 同源反代转发）。
-2. **车辆字段假设**：车牌 `plateNumber`、周期 `startDate/endDate`、照片 `uploadImgUrl…Five` 沿用 MCCKey；品牌字段兼容 `brand / model / carBrand / vehicleModel`；位置字段兼容 `address / locationText`，缺省退化为经纬度；备注字段兼容 `remark / remarks / note / memo / description / comments / remarkText`，缺省显示 `-`；「位置获取时间」由前端在车辆信息拉取成功时生成（`yyyy-MM-dd HH:mm`）。联调以后端实际报文为准微调。
+2. **车辆字段假设**：车牌 `plateNumber`、周期 `startDate/endDate`、照片 `uploadImgUrl…Five` 沿用 MCCKey；品牌字段兼容 `brand / model / carBrand / vehicleModel`；位置字段兼容 `address / locationText`，缺省退化为经纬度；备注字段优先 `bak`（与后端约定一致），兼容 `remark / remarks / note / memo / description / comments / remarkText`，缺省显示 `-`；「位置获取时间」由前端在车辆信息拉取成功时生成（`yyyy-MM-dd HH:mm`）。联调以后端实际报文为准微调。
 3. **照片上传字段名**：`img1Arr`~`img5Arr` 与 MCCKey 保持一致，未做改动；若后端已调整，需同步修改 `returnPhotos/index.vue` 的 `field`。
 4. **控车/还车接口的后端鉴权**：全站不携带 token，请求仅带 `funAreaId`、`lang`、`timestamp`；若后端对 `operation`、`saveImg`、`returnCar` 仍强制鉴权，需确认是否以 `code`（控制码）作为分享场景凭证，或由后端放行该场景，前端再按需补字段。
-5. **分享参数名以后端实际约定为准**：当前兼容 `code/controlcode`、`mobile/phone`；若下发链接使用其他参数名（如 `key`、`tel`），在 `utils/urlParams.js` 增补别名即可。
+5. **分享参数名以后端实际约定为准**：当前兼容 `code/controlcode`（实际分发仅 `code`，无手机号参与）；若下发链接使用其他参数名（如 `key`），在 `utils/urlParams.js` 增补别名即可。
 6. `manifest.json` 中原生 Android/iOS 权限与 SDK 配置已清空（H5 由浏览器授权相机/相册）；若后续再出 App 包需重新补配蓝牙、相机权限。
 7. **路由模式与资源路径（部署关键）**：
    - `manifest.json` 采用 hash 模式（地址栏带 `#/`），`h5.router.base: "./"` 相对路径，资源按 `index.html` 所在目录加载（产物内引用为 `./assets/xxx.js`，不带前导 `/`），可部署在任意子路径（如 `/img/web/`），无需服务器额外配置。
@@ -111,3 +109,7 @@ returnPhotos（code 来自链接或控车页）
 | 日期 | 变更 |
 |---|---|
 | 2026-10-30 | 清理无效代码：删除 `utils/langtitle.js`（未引用的标题字典）、`uni.promisify.adaptor.js`（Vue2 兼容遗留，Vue3 构建不编译）；`main.js` 移除 `#ifndef VUE3` 分支（项目固定 Vue3）；`App.vue` 移除未读取的 `globalData.version`。代码分析详见《代码分析记录.md》 |
+| 2026-10-30 | 移除手机号查询链路：分享链接仅支持 `?code=`（别名 `controlcode`）直连，无手机号参与；删除 `getControlCodeByMobile` 接口、`mobile/phone` 参数解析与 `fetchCarByMobile` 逻辑；业务接口由 5 个减为 4 个 |
+| 2026-10-30 | 还车页新增备注输入框（选填，最多 200 字，三语文案，占位提示"请输入您的停车位置或其他信息"）；`returnCar` 提交增加 `bak` 字段（后端约定字段名） |
+| 2026-10-30 | 控车成功提示修复：弹窗按业务码区分，成功（`code===1000`）显示本地三语 `OperateSuccess`（西语为 Operación realizada con éxito），不再透出后端中文 `msg`；失败仍显示后端具体信息 |
+| 2026-10-30 | 首页备注展示优先读取 `bak` 字段（与后端约定一致），兼容链保留历史字段名兜底 |

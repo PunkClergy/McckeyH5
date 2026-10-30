@@ -23,6 +23,18 @@
 			</button>
 		</scroll-view>
 
+		<!-- 备注输入区（选填） -->
+		<view class="remark-section">
+			<text class="remark-label">{{ tips.Remark[lang] }}</text>
+			<textarea
+				class="remark-input"
+				v-model="bak"
+				:placeholder="tips.RemarkPlaceholder[lang]"
+				placeholder-class="remark-placeholder"
+				:maxlength="200"
+			/>
+		</view>
+
 		<button class="submit-btn" hover-class="ctrl-tap" :disabled="submitting" @tap="submitBtnTap">
 			{{ submitting ? tips.Uploading[lang] : tips.SubmitFinish[lang] }}
 		</button>
@@ -50,7 +62,9 @@
 					{ key: 2, field: 'img3Arr', tipKey: 'LeftPhoto', path: '' },
 					{ key: 3, field: 'img4Arr', tipKey: 'RightPhoto', path: '' },
 					{ key: 4, field: 'img5Arr', tipKey: 'KeyPhoto', path: '' }
-				]
+				],
+				// 还车备注（选填，字段名 bak 与后端约定一致），随 returnCar 一并提交
+				bak: ''
 			}
 		},
 		onLoad(options) {
@@ -162,7 +176,7 @@
 					uni.request({
 						url: RETURN_CAR_URL,
 						method: 'POST',
-						data: { code: this.code },
+						data: { code: this.code, bak: this.bak },
 						header: {
 							'content-type': 'application/x-www-form-urlencoded',
 							...this.buildHeader()
@@ -276,8 +290,38 @@
 		opacity: 0.85;
 	}
 
+	.remark-section {
+		margin-top: 24rpx;
+		padding: 20rpx 24rpx;
+		background: #ffffff;
+		border: 2rpx solid #c5ccd8;
+		border-radius: 16rpx;
+	}
+
+	.remark-label {
+		display: block;
+		font-size: 26rpx;
+		color: #4a5568;
+		margin-bottom: 12rpx;
+	}
+
+	.remark-input {
+		width: 100%;
+		min-height: 140rpx;
+		font-size: 26rpx;
+		color: #1f2937;
+		line-height: 1.5;
+		box-sizing: border-box;
+	}
+
+	.remark-placeholder {
+		color: #b3bac5;
+	}
+
 	.submit-btn {
 		margin-top: 24rpx;
+		width: 100%;
+		box-sizing: border-box;
 		height: 92rpx;
 		line-height: 92rpx;
 		background: #4cd964;

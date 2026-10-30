@@ -99,6 +99,11 @@ export const tips = {
 		"enUs": "Remark",
 		"esEs": "Observaciones"
 	},
+	"RemarkPlaceholder": {
+		"zhCn": "请输入您的停车位置或其他信息",
+		"enUs": "Please enter your parking location or other information",
+		"esEs": "Introduzca su ubicación de estacionamiento u otra información"
+	},
 	"Location": {
 		"zhCn": "当前位置",
 		"enUs": "Location",
