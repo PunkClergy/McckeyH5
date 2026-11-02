@@ -139,8 +139,7 @@ export default {
 			if (this.controlcode) {
 				this.fetchCarInfo(this.controlcode)
 			}
-			// 经纬度地址按新语言重新解析
-			this.resolveAddress()
+			// 地址解析由 fetchCarInfo 成功回调按最新语言触发，避免与回调并发重复请求
 		},
 		// 车辆来源：链接控制码直连 > 空态
 		async resolveVehicle() {
@@ -157,7 +156,7 @@ export default {
 		async fetchCarInfo(code) {
 			try {
 				const res = await u_getCarPoisitonByCode({ code })
-				if (res && res.code == 1000 && res.content) {
+				if (res && Number(res.code) === 1000 && res.content) {
 					this.vehicleInfo = res.content
 					this.fetchedAt = this.formatDateTime(new Date())
 					// 拿到坐标后异步逆地理解析地址（按当前语言）
@@ -174,67 +173,100 @@ export default {
 			if (parts.length) return parts.join(' ')
 			return v.brand || v.model || v.carBrand || v.vehicleModel || '-'
 		},
-		// 字段取值兼容：文本地址优先，缺省退化为经纬度
+		// 兜底地址：中文优先后端简体 address（过清洗去邮编）；英/西不用后端中文地址（避免语言混杂），回退坐标文本
 		vehicleAddress() {
 			const v = this.vehicleInfo || {}
-			if (v.address) return v.address
-			if (v.locationText) return v.locationText
+			if (this.lang === 'zhCn') {
+				if (v.address) return this.cleanAddressText(v.address)
+				return this.formatLocation(v.latitude, v.longitude)
+			}
 			return this.formatLocation(v.latitude, v.longitude)
 		},
-		// 经纬度逆地理解析为地址文本（按当前语言；主：OpenStreetMap Nominatim，备：BigDataCloud，均免 Key）
+		// 统一清洗地址文本：去 Plus Code、邮编标签与邮编数字、首尾标点与连续逗号
+		cleanAddressText(text) {
+			let t = String(text || '')
+			// 剥离 Plus Code 前缀（兼容空格 / 逗号分隔）
+			t = t.replace(/^[A-Z0-9]{4,9}\+[A-Z0-9]{2,4}[\s,，]*/, '')
+			// 删除邮编标签 + 其后数字（中文“邮政编码: 100070”、英 Postal Code、西 Código Postal 等）
+			t = t.replace(/(邮政编码|邮编|Postal\s*Code|Postcode|Zip\s*Code|Código\s*Postal|C\.P\.?)\s*[:：，,\-]*\s*\d{3,9}/gi, '')
+			// 删除结尾孤立邮编数字（逗号或空格分隔；锚定结尾，不误删开头门牌号）
+			t = t.replace(/[,，]?\s*\d{3,9}\s*$/, '')
+			// 清理首尾标点 / 空白与连续逗号、多余空格
+			t = t.replace(/^[\s,，;；:：\-]+|[\s,，;；:：\-]+$/g, '').trim()
+			t = t.replace(/,\s*,+/g, ',').replace(/，\s*，+/g, '，').replace(/\s{2,}/g, ' ').trim()
+			return t
+		},
+		// 地址口径：中文直接取后端 address 字段（清洗后展示）；英/西用 lat/lng 经谷歌逆编码翻译。
+		// seq 递增序号仅最新响应可写；同坐标同语言内存缓存；失败由 vehicleAddress() 兜底
 		resolveAddress() {
 			const v = this.vehicleInfo || {}
+			// 中文：直接采用后端 address，不调用谷歌
+			if (this.lang === 'zhCn') {
+				this.resolvedAddress = this.cleanAddressText(v.address || '')
+				return
+			}
 			const lat = v.latitude
 			const lng = v.longitude
 			if (lat === undefined || lat === null || lat === '' || lng === undefined || lng === null || lng === '') {
 				this.resolvedAddress = ''
 				return
 			}
-			const langCode = { zhCn: 'zh-CN', enUs: 'en', esEs: 'es' }[this.lang] || 'en'
+			// 英/西：坐标经谷歌逆编码翻译
+			const langCode = this.lang === 'esEs' ? 'es' : 'en'
 			const cacheKey = `${lat},${lng}|${langCode}`
-			// 同坐标同语言结果缓存，避免重复请求
 			this._geoCache = this._geoCache || {}
 			if (this._geoCache[cacheKey]) {
 				this.resolvedAddress = this._geoCache[cacheKey]
 				return
 			}
+			const seq = (this._geoSeq || 0) + 1
+			this._geoSeq = seq
 			const apply = (text) => {
+				if (seq !== this._geoSeq) return
 				const addr = (text || '').trim()
-				this.resolvedAddress = addr || ''
+				this.resolvedAddress = addr
 				this._geoCache[cacheKey] = addr
 			}
 			uni.request({
-				url: `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=${langCode}&zoom=16`,
+				url: `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=${langCode}&key=AIzaSyDGzLnrbvfiqdmemX8yR4CTc6n2SzjOaBM`,
 				method: 'GET',
 				timeout: 8000,
 				success: (res) => {
-					if (res.statusCode === 200 && res.data && res.data.display_name) {
-						// 去掉国别层、最多保留 4 段，避免地址过长
-						const parts = String(res.data.display_name).split(',').map(s => s.trim()).filter(Boolean)
-						const filtered = parts.filter(s => !/^(中国|China|People'?s Republic of China)$/.test(s))
-						apply(filtered.slice(0, 4).join(', '))
-					} else {
-						this.geoFallback(lat, lng, langCode, apply)
-					}
-				},
-				fail: () => this.geoFallback(lat, lng, langCode, apply)
-			})
-		},
-		geoFallback(lat, lng, langCode, apply) {
-			uni.request({
-				url: `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=${langCode}`,
-				method: 'GET',
-				timeout: 8000,
-				success: (res) => {
-					if (res.statusCode === 200 && res.data) {
-						const d = res.data
-						const parts = [d.locality, d.city, d.principalSubdivision, d.countryName]
-						apply(parts.filter(Boolean).join(', '))
+					if (seq !== this._geoSeq) return
+					const d = res.data
+					if (res.statusCode === 200 && d && d.status === 'OK' && d.results && d.results.length) {
+						const list = d.results
+						// 按 address_components 精度打分选最详细结果（门牌号 > 道路/街道 > 区县 > 城市 > 国家）；
+						// 邮编、Plus Code 等脏内容统一由 cleanAddressText 去除，不因含邮编而放弃详细结果
+						const scoreOf = (r) => {
+							const set = {}
+							;(r.address_components || []).forEach(c => { (c.types || []).forEach(t => { set[t] = true }) })
+							let s = 0
+							if (set.street_number) s += 120
+							if (set.route) s += 90
+							if (set.sublocality_level_2) s += 70
+							if (set.sublocality_level_1 || set.sublocality) s += 60
+							if (set.administrative_area_level_3) s += 55
+							if (set.locality) s += 40
+							if (set.administrative_area_level_2) s += 30
+							if (set.administrative_area_level_1) s += 10
+							if (set.country) s += 5
+							return s
+						}
+						let hit = list[0], best = -1
+						list.forEach(r => {
+							const s = scoreOf(r)
+							if (s > best) { best = s; hit = r }
+						})
+						apply(this.cleanAddressText(hit ? hit.formatted_address : ''))
 					} else {
 						apply('')
 					}
 				},
-				fail: () => apply('')
+				fail: () => {
+					if (seq !== this._geoSeq) return
+					apply('')
+				}
 			})
 		},
 		authPeriodText() {
@@ -287,7 +319,7 @@ export default {
 				uni.showModal({
 					title: this.tips.Tip[this.lang],
 					// 业务成功（code===1000）显示本地三语文案，避免后端中文 msg 透出；失败时保留后端具体信息
-					content: (res && res.code == 1000)
+					content: (res && Number(res.code) === 1000)
 						? this.tips.OperateSuccess[this.lang]
 						: ((res && res.msg) || this.tips.OperateSuccess[this.lang]),
 					showCancel: false,

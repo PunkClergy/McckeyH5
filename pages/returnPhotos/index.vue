@@ -120,7 +120,7 @@
 						success: (res) => {
 							try {
 								const data = JSON.parse(res.data)
-								if (res.statusCode === 200 && data.code === 1000) {
+								if (res.statusCode === 200 && Number(data.code) === 1000) {
 									resolve(data)
 								} else {
 									reject(new Error(data.msg || 'upload failed'))
@@ -183,7 +183,7 @@
 						},
 						timeout: 20000,
 						success: (res) => {
-							if (res.statusCode === 200 && res.data && res.data.code === 1000) {
+							if (res.statusCode === 200 && res.data && Number(res.data.code) === 1000) {
 								resolve(res.data)
 							} else {
 								reject(new Error((res.data && res.data.msg) || 'returnCar failed'))

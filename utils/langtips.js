@@ -95,9 +95,9 @@ export const tips = {
 		"esEs": "Periodo autorizado"
 	},
 	"Remark": {
-		"zhCn": "备注",
-		"enUs": "Remark",
-		"esEs": "Observaciones"
+		"zhCn": "备注(停放位置)",
+		"enUs": "Remark (Parking Location)",
+		"esEs": "Observaciones (Ubicación de estacionamiento)"
 	},
 	"RemarkPlaceholder": {
 		"zhCn": "请输入您的停车位置或其他信息",
