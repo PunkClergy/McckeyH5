@@ -363,10 +363,11 @@ export default {
 	.page {
 		position: relative;
 		overflow: hidden;
-		min-height: 100vh;
+		height: 100vh;
+		height: 100dvh;
 		display: flex;
 		flex-direction: column;
-		padding: 28rpx 28rpx 32rpx;
+		padding: 24rpx 28rpx 28rpx;
 		box-sizing: border-box;
 		background: linear-gradient(165deg, #f1ecfb 0%, #eef4fb 35%, #e9f3ec 70%, #eef2fa 100%);
 	}
@@ -396,7 +397,7 @@ export default {
 
 	.spacer {
 		flex: 1;
-		min-height: 40rpx;
+		min-height: 16rpx;
 	}
 
 	.header {
@@ -405,7 +406,7 @@ export default {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 24rpx 8rpx 44rpx;
+		padding: 16rpx 8rpx 22rpx;
 	}
 
 	.header-left {
@@ -454,11 +455,11 @@ export default {
 		position: relative;
 		z-index: 1;
 		overflow: hidden;
-		margin-top: 18rpx;
+		margin-top: 14rpx;
 		background: #ffffff;
 		border: 1rpx solid #e4ddf4;
 		border-radius: 32rpx;
-		padding: 44rpx 36rpx 40rpx;
+		padding: 30rpx 32rpx 28rpx;
 		display: flex;
 		flex-direction: column;
 		box-shadow: 0 14rpx 34rpx rgba(60, 50, 120, 0.08);
@@ -478,7 +479,7 @@ export default {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 14rpx;
+		gap: 10rpx;
 	}
 
 	.plate-tag {
@@ -493,7 +494,7 @@ export default {
 	}
 
 	.plate-value {
-		font-size: 44rpx;
+		font-size: 40rpx;
 		font-weight: 700;
 		color: #2e2a4e;
 		letter-spacing: 1rpx;
@@ -503,7 +504,7 @@ export default {
 	.divider {
 		height: 1rpx;
 		background: #eef0f8;
-		margin: 34rpx 0;
+		margin: 20rpx 0;
 	}
 
 	/* 字段行：左标签 + 右值 */
@@ -511,7 +512,7 @@ export default {
 		display: flex;
 		align-items: flex-start;
 		gap: 28rpx;
-		margin-bottom: 30rpx;
+		margin-bottom: 20rpx;
 	}
 
 	.field:last-child {
@@ -563,14 +564,14 @@ export default {
 	.photo-bar {
 		position: relative;
 		z-index: 1;
-		margin-bottom: 36rpx;
+		margin-bottom: 22rpx;
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
 		background: linear-gradient(90deg, #f3fbf6, #f2f6fd);
 		border: 1rpx solid #dfeee5;
 		border-radius: 40rpx;
-		padding: 32rpx 36rpx;
+		padding: 24rpx 32rpx;
 		box-shadow: 0 8rpx 20rpx rgba(60, 50, 120, 0.06);
 	}
 
@@ -589,7 +590,7 @@ export default {
 	.circle-row {
 		position: relative;
 		z-index: 1;
-		margin-bottom: 48rpx;
+		margin-bottom: 22rpx;
 		display: flex;
 		justify-content: space-around;
 	}
@@ -598,12 +599,12 @@ export default {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 20rpx;
+		gap: 14rpx;
 	}
 
 	.circle {
-		width: 136rpx;
-		height: 136rpx;
+		width: 126rpx;
+		height: 126rpx;
 		border-radius: 50%;
 		display: flex;
 		align-items: center;
@@ -644,7 +645,7 @@ export default {
 	}
 
 	.circle-label {
-		font-size: 26rpx;
+		font-size: 24rpx;
 		color: #494465;
 	}
 
@@ -652,12 +653,12 @@ export default {
 	.return-btn {
 		position: relative;
 		z-index: 1;
-		margin-bottom: 12rpx;
+		margin-bottom: 10rpx;
 		width: 100%;
 		box-sizing: border-box;
-		height: 96rpx;
-		line-height: 96rpx;
-		border-radius: 48rpx;
+		height: 88rpx;
+		line-height: 88rpx;
+		border-radius: 44rpx;
 		background: linear-gradient(90deg, #eed189, #d2a24c);
 		color: #ffffff;
 		font-size: 32rpx;
