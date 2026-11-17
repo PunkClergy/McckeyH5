@@ -48,6 +48,16 @@
 	const SAVE_IMG_URL = 'https://k1sw.wiselink.net.cn/renterApi/saveImg'
 	const RETURN_CAR_URL = 'https://k1sw.wiselink.net.cn/renterApi/returnCar'
 
+	// 上传前压缩参数：长边上限 1600px、JPEG 质量 0.82
+	// 手机原图通常 3~8MB，压缩后约 250~450KB，上传耗时下降一个数量级
+	const MAX_SIDE = 1600
+	const QUALITY = 0.82
+	// 小于此体积的图不再重编码，避免二次失真
+	const MIN_COMPRESS_BYTES = 500 * 1024
+	// 单张上传超时（毫秒）与失败重试次数
+	const UPLOAD_TIMEOUT = 30000
+	const UPLOAD_MAX_RETRY = 2
+
 	export default {
 		data() {
 			return {
@@ -56,12 +66,13 @@
 				code: '',
 				submitting: false,
 				// 5 张照片：字段名与后端约定 img1Arr ~ img5Arr 保持一致
+				// path 预览地址；ownUrl 仅记录本页压缩生成的 blob 地址（用于精确释放）；blob 上传用
 				photoItems: [
-					{ key: 0, field: 'img1Arr', tipKey: 'FrontPhoto', path: '' },
-					{ key: 1, field: 'img2Arr', tipKey: 'RearPhoto', path: '' },
-					{ key: 2, field: 'img3Arr', tipKey: 'LeftPhoto', path: '' },
-					{ key: 3, field: 'img4Arr', tipKey: 'RightPhoto', path: '' },
-					{ key: 4, field: 'img5Arr', tipKey: 'KeyPhoto', path: '' }
+					{ key: 0, field: 'img1Arr', tipKey: 'FrontPhoto', path: '', originPath: '', ownUrl: '', blob: null, size: 0, originSize: 0 },
+					{ key: 1, field: 'img2Arr', tipKey: 'RearPhoto', path: '', originPath: '', ownUrl: '', blob: null, size: 0, originSize: 0 },
+					{ key: 2, field: 'img3Arr', tipKey: 'LeftPhoto', path: '', originPath: '', ownUrl: '', blob: null, size: 0, originSize: 0 },
+					{ key: 3, field: 'img4Arr', tipKey: 'RightPhoto', path: '', originPath: '', ownUrl: '', blob: null, size: 0, originSize: 0 },
+					{ key: 4, field: 'img5Arr', tipKey: 'KeyPhoto', path: '', originPath: '', ownUrl: '', blob: null, size: 0, originSize: 0 }
 				],
 				// 还车备注（选填，字段名 bak 与后端约定一致），随 returnCar 一并提交
 				bak: ''
@@ -70,6 +81,10 @@
 		onLoad(options) {
 			this.code = (options && options.code) || ''
 			this.initLang()
+		},
+		onUnload() {
+			// 页面销毁时释放本页压缩生成的 blob 地址
+			this.photoItems.forEach((item) => this.revokeOwnUrl(item))
 		},
 		methods: {
 			initLang() {
@@ -86,13 +101,31 @@
 				}
 			},
 			choosePhoto(item) {
+				// 提交上传过程中不允许再改图，避免上传对象与界面不一致
+				if (this.submitting) return
 				uni.chooseImage({
 					count: 1,
 					sizeType: ['compressed'],
 					sourceType: ['album', 'camera'],
-					success: (res) => {
-						if (res.tempFilePaths && res.tempFilePaths[0]) {
-							item.path = res.tempFilePaths[0]
+					success: async (res) => {
+						const originPath = res.tempFilePaths && res.tempFilePaths[0]
+						if (!originPath) return
+						// 重新选图时释放上一张由本页压缩生成的临时地址
+						this.revokeOwnUrl(item)
+						// 大图重编码需要时间，给个轻量反馈
+						uni.showLoading({ title: this.tips.Loading[this.lang], mask: true })
+						const pickedFile = res.tempFiles && res.tempFiles[0] && res.tempFiles[0].file
+						// H5 下 sizeType 不生效，这里统一走 Canvas 压缩到长边 1600px / q0.82
+						const packed = await this.compressToTarget(originPath, pickedFile)
+						uni.hideLoading()
+						item.originPath = originPath
+						item.blob = packed.blob || null
+						item.path = packed.path || originPath
+						item.ownUrl = packed.ownUrl || ''
+						item.size = packed.size || 0
+						item.originSize = packed.originSize || 0
+						if (item.originSize && item.size) {
+							console.log('[photo] 压缩 ' + Math.round(item.originSize / 1024) + 'KB -> ' + Math.round(item.size / 1024) + 'KB')
 						}
 					},
 					fail: (err) => {
@@ -109,7 +142,108 @@
 			buildHeader() {
 				return { timestamp: Date.parse(new Date()) }
 			},
+			/* ===== 上传前压缩（H5 Canvas 重编码） ===== */
+			// 只释放本页压缩生成的 blob 地址，不动 uni 自己的预览地址
+			revokeOwnUrl(item) {
+				if (item && item.ownUrl && item.ownUrl.indexOf('blob:') === 0) {
+					try { URL.revokeObjectURL(item.ownUrl) } catch (e) {}
+					item.ownUrl = ''
+				}
+			},
+			async compressToTarget(path, pickedFile) {
+				// 非 H5 或环境不支持，直接走原图
+				if (typeof document === 'undefined') {
+					return { path, blob: null, size: 0, originSize: 0 }
+				}
+				let blob = null
+				// 优先直接用 chooseImage 返回的原始 File，省一次网络读取
+				if (pickedFile && typeof pickedFile.size === 'number' && pickedFile.size > 0) {
+					blob = pickedFile
+				} else if (typeof fetch !== 'undefined') {
+					try {
+						blob = await (await fetch(path)).blob()
+					} catch (e) {
+						return { path, blob: null, size: 0, originSize: 0 }
+					}
+				} else {
+					return { path, blob: null, size: 0, originSize: 0 }
+				}
+				const originSize = blob.size
+				// 体积本来就小，避免无谓重编码
+				if (originSize <= MIN_COMPRESS_BYTES) {
+					return { path, blob, size: originSize, originSize }
+				}
+				const out = await this.shrinkImage(blob)
+				// 压缩失败或结果反而更大，回退原图
+				if (!out || out.size >= originSize) {
+					return { path, blob, size: originSize, originSize }
+				}
+				const url = URL.createObjectURL(out)
+				return { path: url, ownUrl: url, blob: out, size: out.size, originSize }
+			},
+			// 按长边上限等比缩放，再以 JPEG 重编码
+			shrinkImage(blob) {
+				return new Promise((resolve) => {
+					const objectUrl = URL.createObjectURL(blob)
+					const img = new Image()
+					img.onload = () => {
+						try {
+							const iw = img.naturalWidth || img.width
+							const ih = img.naturalHeight || img.height
+							const scale = Math.min(1, MAX_SIDE / Math.max(iw, ih))
+							const w = Math.max(1, Math.round(iw * scale))
+							const h = Math.max(1, Math.round(ih * scale))
+							const canvas = document.createElement('canvas')
+							canvas.width = w
+							canvas.height = h
+							canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+							canvas.toBlob((out) => {
+								URL.revokeObjectURL(objectUrl)
+								resolve(out || null)
+							}, 'image/jpeg', QUALITY)
+						} catch (e) {
+							URL.revokeObjectURL(objectUrl)
+							resolve(null)
+						}
+					}
+					img.onerror = () => {
+						URL.revokeObjectURL(objectUrl)
+						resolve(null)
+					}
+					img.src = objectUrl
+				})
+			},
+			// 把网络类失败标记为可重试
+			markRetryable(err) {
+				if (err && typeof err === 'object') {
+					err.retryable = true
+					return err
+				}
+				return Object.assign(new Error(String(err)), { retryable: true })
+			},
+			delay(ms) {
+				return new Promise((resolve) => setTimeout(resolve, ms))
+			},
+			// 单张上传 + 退避重试（仅网络类失败重试，业务失败直接抛出）
+			async uploadOnePhotoWithRetry(item) {
+				let attempt = 0
+				while (attempt <= UPLOAD_MAX_RETRY) {
+					try {
+						return await this.uploadOnePhoto(item)
+					} catch (e) {
+						const retryable = e && e.retryable
+						attempt += 1
+						if (!retryable || attempt > UPLOAD_MAX_RETRY) throw e
+						console.warn('[photo] 上传失败，第 ' + attempt + ' 次重试', e)
+						await this.delay(500 * attempt)
+					}
+				}
+			},
+			// 单张上传：优先用压缩后的 Blob + 原生 XHR（可控超时），否则回退 uni.uploadFile
 			uploadOnePhoto(item) {
+				if (item.blob && typeof XMLHttpRequest !== 'undefined') {
+					return this.uploadBlobByXhr(item)
+				}
 				return new Promise((resolve, reject) => {
 					uni.uploadFile({
 						url: SAVE_IMG_URL,
@@ -117,20 +251,57 @@
 						name: item.field,
 						formData: { code: this.code },
 						header: this.buildHeader(),
+						timeout: UPLOAD_TIMEOUT,
 						success: (res) => {
 							try {
 								const data = JSON.parse(res.data)
 								if (res.statusCode === 200 && Number(data.code) === 1000) {
 									resolve(data)
 								} else {
+									// 业务码非成功，不重试
 									reject(new Error(data.msg || 'upload failed'))
 								}
 							} catch (e) {
-								reject(e)
+								reject(this.markRetryable(e))
 							}
 						},
-						fail: reject
+						fail: (err) => {
+							reject(this.markRetryable(err))
+						}
 					})
+				})
+			},
+			// 原生 XHR 上传 Blob：可设置超时，并按 5 张总量给出进度
+			uploadBlobByXhr(item) {
+				return new Promise((resolve, reject) => {
+					const xhr = new XMLHttpRequest()
+					xhr.open('POST', SAVE_IMG_URL, true)
+					// 不手写 content-type，交给浏览器自动生成 multipart boundary
+					const header = this.buildHeader()
+					Object.keys(header).forEach((k) => xhr.setRequestHeader(k, header[k]))
+					xhr.timeout = UPLOAD_TIMEOUT
+					xhr.onload = () => {
+						let data = null
+						try {
+							data = JSON.parse(xhr.responseText)
+						} catch (e) {
+							reject(this.markRetryable(e))
+							return
+						}
+						if (xhr.status === 200 && data && Number(data.code) === 1000) {
+							resolve(data)
+						} else {
+							reject(new Error((data && data.msg) || 'upload failed'))
+						}
+					}
+					xhr.onerror = () => reject(this.markRetryable(new Error('network error')))
+					xhr.ontimeout = () => reject(this.markRetryable(new Error('upload timeout')))
+					xhr.onabort = () => reject(this.markRetryable(new Error('upload aborted')))
+					const fd = new FormData()
+					// 文件名固定带 .jpg，后端按扩展名落盘
+					fd.append(item.field, item.blob, item.field + '.jpg')
+					fd.append('code', this.code)
+					xhr.send(fd)
 				})
 			},
 			submitBtnTap() {
@@ -148,10 +319,14 @@
 			},
 			async finishReturn() {
 				this.submitting = true
-				uni.showLoading({ title: this.tips.Uploading[this.lang], mask: true })
+				const total = this.photoItems.length
 				try {
-					// 先并行上传 5 张照片，全部成功后再提交还车
-					await Promise.all(this.photoItems.map(item => this.uploadOnePhoto(item)))
+					// 逐张串行上传：避免 5 张抢同一上行带宽互相拖慢，并实时显示「第 n/5 张」
+					for (let i = 0; i < total; i++) {
+						uni.showLoading({ title: `${i + 1}/${total}`, mask: true })
+						await this.uploadOnePhotoWithRetry(this.photoItems[i])
+					}
+					uni.showLoading({ title: this.tips.Uploading[this.lang], mask: true })
 					await this.requestReturnCar()
 					uni.hideLoading()
 					uni.showModal({
