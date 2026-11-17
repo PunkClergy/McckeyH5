@@ -337,17 +337,21 @@
 				this.submitting = true
 				const total = this.photoItems.length
 				try {
+					const startAt = Date.now()
 					// 逐张串行上传：避免 5 张抢同一上行带宽互相拖慢，并实时显示「第 n/5 张」
 					for (let i = 0; i < total; i++) {
 						uni.showLoading({ title: `${i + 1}/${total}`, mask: true })
 						await this.uploadOnePhotoWithRetry(this.photoItems[i])
 					}
+					// 5 张照片上传耗时（秒，向上取整，至少 1 秒）
+					const uploadSec = Math.max(1, Math.ceil((Date.now() - startAt) / 1000))
+					console.log('[photo] 上传耗时 ' + uploadSec + 's')
 					uni.showLoading({ title: this.tips.Uploading[this.lang], mask: true })
 					await this.requestReturnCar()
 					uni.hideLoading()
 					uni.showModal({
 						title: this.tips.Tip[this.lang],
-						content: this.tips.SubmitSuccess[this.lang],
+						content: `${this.tips.SubmitSuccess[this.lang]}\n${this.tips.UploadCost[this.lang]}: ${uploadSec}s`,
 						showCancel: false,
 						confirmText: this.tips.Confirm[this.lang],
 						success: () => {

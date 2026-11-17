@@ -176,6 +176,11 @@ export const tips = {
 		"enUs": "Uploading…",
 		"esEs": "Subiendo…"
 	},
+	"UploadCost": {
+		"zhCn": "上传耗时",
+		"enUs": "Upload time",
+		"esEs": "Tiempo de subida"
+	},
 	"UploadSuccess": {
 		"zhCn": "上传成功",
 		"enUs": "Upload succeeded",
