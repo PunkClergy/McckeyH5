@@ -20,6 +20,7 @@
 					<text class="photo-label">{{ tips[item.tipKey][lang] }}</text>
 				</view>
 				<text v-if="item.path" class="photo-label photo-label-on-img">{{ tips[item.tipKey][lang] }}</text>
+				<text v-if="item.path && item.size" class="photo-size">{{ Math.round(item.size / 1024) }}KB</text>
 			</button>
 		</scroll-view>
 
@@ -48,12 +49,13 @@
 	const SAVE_IMG_URL = 'https://k1sw.wiselink.net.cn/renterApi/saveImg'
 	const RETURN_CAR_URL = 'https://k1sw.wiselink.net.cn/renterApi/returnCar'
 
-	// 上传前压缩参数：长边上限 1600px、JPEG 质量 0.82
-	// 手机原图通常 3~8MB，压缩后约 250~450KB，上传耗时下降一个数量级
-	const MAX_SIDE = 1600
-	const QUALITY = 0.82
-	// 小于此体积的图不再重编码，避免二次失真
-	const MIN_COMPRESS_BYTES = 500 * 1024
+	// 上传前压缩：质量固定 0.55，边长上限 1280；单张仍超目标体积则继续缩边
+	const MAX_SIDE = 1280
+	const QUALITY = 0.55
+	// 单张压缩后的目标体积上限
+	const TARGET_MAX_BYTES = 250 * 1024
+	// 原图小于此体积（128KB）直接上传，不做重编码
+	const SKIP_COMPRESS_BYTES = 128 * 1024
 	// 单张上传超时（毫秒）与失败重试次数
 	const UPLOAD_TIMEOUT = 30000
 	const UPLOAD_MAX_RETRY = 2
@@ -169,8 +171,8 @@
 					return { path, blob: null, size: 0, originSize: 0 }
 				}
 				const originSize = blob.size
-				// 体积本来就小，避免无谓重编码
-				if (originSize <= MIN_COMPRESS_BYTES) {
+				// 已达免压缩阈值（128KB）则直接上传
+				if (originSize <= SKIP_COMPRESS_BYTES) {
 					return { path, blob, size: originSize, originSize }
 				}
 				const out = await this.shrinkImage(blob)
@@ -181,26 +183,34 @@
 				const url = URL.createObjectURL(out)
 				return { path: url, ownUrl: url, blob: out, size: out.size, originSize }
 			},
-			// 按长边上限等比缩放，再以 JPEG 重编码
+			// 按目标体积压缩：质量固定，超目标则继续缩边重压
 			shrinkImage(blob) {
 				return new Promise((resolve) => {
 					const objectUrl = URL.createObjectURL(blob)
 					const img = new Image()
-					img.onload = () => {
+					img.onload = async () => {
 						try {
 							const iw = img.naturalWidth || img.width
 							const ih = img.naturalHeight || img.height
-							const scale = Math.min(1, MAX_SIDE / Math.max(iw, ih))
-							const w = Math.max(1, Math.round(iw * scale))
-							const h = Math.max(1, Math.round(ih * scale))
-							const canvas = document.createElement('canvas')
-							canvas.width = w
-							canvas.height = h
-							canvas.getContext('2d').drawImage(img, 0, 0, w, h)
-							canvas.toBlob((out) => {
-								URL.revokeObjectURL(objectUrl)
-								resolve(out || null)
-							}, 'image/jpeg', QUALITY)
+							let side = MAX_SIDE
+							let output = null
+							for (let round = 0; round < 3; round++) {
+								const scale = Math.min(1, side / Math.max(iw, ih))
+								const w = Math.max(1, Math.round(iw * scale))
+								const h = Math.max(1, Math.round(ih * scale))
+								const canvas = document.createElement('canvas')
+								canvas.width = w
+								canvas.height = h
+								const ctx = canvas.getContext('2d')
+								if (!ctx) throw new Error('canvas unavailable')
+								ctx.drawImage(img, 0, 0, w, h)
+								// 质量固定 QUALITY；体积不达标则边长 ×0.8 再压
+								output = await this.toJpegBlob(canvas, QUALITY)
+								if (output && output.size <= TARGET_MAX_BYTES) break
+								side = Math.round(side * 0.8)
+							}
+							URL.revokeObjectURL(objectUrl)
+							resolve(output || null)
 						} catch (e) {
 							URL.revokeObjectURL(objectUrl)
 							resolve(null)
@@ -211,6 +221,12 @@
 						resolve(null)
 					}
 					img.src = objectUrl
+				})
+			},
+			// canvas.toBlob 的 Promise 包装
+			toJpegBlob(canvas, quality) {
+				return new Promise((resolve) => {
+					canvas.toBlob((out) => resolve(out || null), 'image/jpeg', quality)
 				})
 			},
 			// 把网络类失败标记为可重试
@@ -460,6 +476,19 @@
 		padding: 6rpx 18rpx;
 		border-radius: 20rpx;
 		font-size: 22rpx;
+	}
+
+	/* 压缩后体积角标（便于确认实际传输大小） */
+	.photo-size {
+		position: absolute;
+		top: 16rpx;
+		right: 16rpx;
+		padding: 4rpx 12rpx;
+		border-radius: 10rpx;
+		background: rgba(0, 0, 0, 0.45);
+		color: #ffffff;
+		font-size: 20rpx;
+		line-height: 1.5;
 	}
 
 	.ctrl-tap {
